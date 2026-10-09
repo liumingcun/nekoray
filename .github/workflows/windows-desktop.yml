@@ -1,0 +1,135 @@
+name: Windows desktop package
+run-name: Windows x64 desktop · ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ui/shadowrocket-desktop]
+    paths-ignore: ['**.md', 'LICENSE']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Windows proxy core and resources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.12'
+          cache-dependency-path: |
+            go/cmd/nekobox_core/go.sum
+            go/cmd/updater/go.sum
+      - name: Fetch pinned core sources
+        run: ./libs/get_source.sh
+      - name: Build Windows core and updater
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: ./libs/build_go.sh
+      - name: Download routing resources
+        run: ./libs/build_public_res.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-core-and-resources
+          path: deployment/
+          if-no-files-found: error
+          retention-days: 7
+
+  desktop:
+    name: Windows x64 Qt desktop
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Install the upstream Qt 6.7.2 SDK
+        shell: bash
+        env:
+          DL_QT_VER: '6.7'
+        run: bash ./libs/download_qtsdk_win.sh
+      - uses: actions/cache@v4
+        id: deps
+        with:
+          path: libs/deps/built
+          key: windows-2022-msvc-x64-deps-v1-${{ hashFiles('libs/build_deps_all.sh') }}
+      - name: Build C++ dependencies
+        if: steps.deps.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          cmake: 'cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5'
+        run: ./libs/build_deps_all.sh
+      - name: Build and deploy the full desktop application
+        shell: bash
+        env:
+          DL_QT_VER: '6.7'
+          CC: cl.exe
+          CXX: cl.exe
+        run: |
+          set -euo pipefail
+          source libs/env_qtsdk.sh "$PWD/qtsdk/Qt"
+          cmake -S . -B build -G Ninja -DQT_VERSION_MAJOR=6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build --parallel 2
+          ./libs/deploy_windows64.sh
+          runtime_dir=$(cygpath -u "$VCToolsRedistDir")
+          runtime_dlls=$(find "$runtime_dir/x64" -path '*/Microsoft.VC*.CRT/*.dll')
+          test -n "$runtime_dlls"
+          while IFS= read -r dll; do cp "$dll" deployment/windows64/; done <<< "$runtime_dlls"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop-runtime
+          path: deployment/windows64/
+          if-no-files-found: error
+          retention-days: 7
+
+  package:
+    name: Ready-to-run Windows ZIP
+    needs: [core, desktop]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-core-and-resources
+          path: components
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-desktop-runtime
+          path: nekoray
+      - name: Assemble and validate portable package
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cp -a components/windows64/. nekoray/
+          cp -a components/public_res/. nekoray/
+          for file in nekobox.exe nekobox_core.exe updater.exe Qt6Core.dll platforms/qwindows.dll geoip.db geosite.db; do
+            test -s "nekoray/$file" || { echo "Missing runtime file: $file"; exit 1; }
+          done
+          printf 'Source commit: %s\nWindows x64 · Shadowrocket desktop UI\n' "$BUILD_SHA" > nekoray/BUILD.txt
+          zip -qr nekoray-shadowrocket-windows-x64.zip nekoray
+          sha256sum nekoray-shadowrocket-windows-x64.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        id: package
+        with:
+          name: nekoray-shadowrocket-windows-x64
+          path: |
+            nekoray-shadowrocket-windows-x64.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Download link
+        env:
+          ARTIFACT_URL: ${{ steps.package.outputs.artifact-url }}
+        run: echo "[Download Windows x64 package]($ARTIFACT_URL)" >> "$GITHUB_STEP_SUMMARY"
