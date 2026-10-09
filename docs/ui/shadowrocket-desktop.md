@@ -13,3 +13,11 @@ Built-in theme IDs are preserved. System (0) uses the initial system palette to 
 - Actual Qt screenshots inspected at 1060 × 720 and 800 × 600, including Chinese text and both modern themes.
 
 This validation build excludes gRPC, YAML, QR scanning and hotkeys. It verifies the GUI, not live proxy connectivity, subscription downloads, system proxy changes, TUN permissions or Windows packaging. Phase 3 must run those checks with the full dependencies and sing-box core before producing a distributable release.
+
+## One-click connection modes
+
+The home screen provides System proxy and TUN connection buttons. Both start the selected profile; system proxy is applied only after the core accepts the configuration, while TUN is configured before starting. Switching modes waits for the old profile to stop, clears its mode, and starts the selected profile (or the running profile if none is selected). Clicking the active mode disconnects and clears both mode settings. Busy buttons and related tray actions are disabled until completion.
+
+Failed configuration builds, RPC starts, core process launches and canceled TUN setup reset the controls. Core crashes and ordinary stops clear modes for sessions started from the home screen; internal profile/config restarts preserve the mode. Legacy menu Start remains available for local-only operation. External TUN process launch/exit is monitored; full network readiness and OS system-proxy application still use the upstream platform implementations.
+
+Validation: configure a Makefiles build with `-DNKR_NO_EXTERNAL=ON`, build it, then run `python tests/test_desktop_connection_modes.py /absolute/path/to/build-ui`. The integration check exercises the real window and asynchronous start/stop with mocked OS mode setters and core start failure injection; it never changes the host proxy or requests privileges.

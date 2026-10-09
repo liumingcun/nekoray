@@ -33,8 +33,10 @@ struct DesktopShellControls {
     QAction *clipboard;
 };
 
+struct DesktopConnectionButtons { QPushButton *systemProxy; QPushButton *tun; };
+
 class DesktopShell {
     Q_DECLARE_TR_FUNCTIONS(DesktopShell)
 public:
-    static QPushButton *Build(QMainWindow *window, const DesktopShellControls &controls);
+    static DesktopConnectionButtons Build(QMainWindow *window, const DesktopShellControls &controls);
 };

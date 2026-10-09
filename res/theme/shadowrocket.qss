@@ -23,9 +23,9 @@ QPushButton[navigation="true"]:hover { background: @hover; }
 QPushButton[navigation="true"]:checked { background: @selection; color: @accent; font-weight: 600; }
 QWidget#sidebar QToolButton { background: transparent; border: 1px solid transparent; text-align: left; padding: 6px; }
 QWidget#sidebar QToolButton:hover { background: @hover; }
-QPushButton#connectionButton, QToolButton#addNodeButton { background: @accent; color: white; border-color: @accent; font-weight: 600; }
-QPushButton#connectionButton[connected="true"] { background: @success; border-color: @success; }
-QPushButton#connectionButton:hover, QToolButton#addNodeButton:hover { border-color: @text; }
+QPushButton[connectionMode="true"], QToolButton#addNodeButton { background: @accent; color: white; border-color: @accent; font-weight: 600; }
+QPushButton[connectionMode="true"][connected="true"] { background: @success; border-color: @success; }
+QPushButton[connectionMode="true"]:hover, QToolButton#addNodeButton:hover { border-color: @text; }
 QPushButton#quietButton { border: none; background: transparent; color: @accent; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
     background: @surface; border: 1px solid @border; border-radius: 7px;

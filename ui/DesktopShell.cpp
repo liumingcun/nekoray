@@ -8,7 +8,7 @@
 #include <QTabBar>
 #include <QCoreApplication>
 
-QPushButton *DesktopShell::Build(QMainWindow *window, const DesktopShellControls &c) {
+DesktopConnectionButtons DesktopShell::Build(QMainWindow *window, const DesktopShellControls &c) {
     // Keep the designer widget alive: existing slots still reference its controls.
     auto legacy = window->takeCentralWidget();
     legacy->setParent(window);
@@ -58,15 +58,21 @@ QPushButton *DesktopShell::Build(QMainWindow *window, const DesktopShellControls
     summary->addLayout(labels, 1);
     summary->addWidget(c.speed);
     summary->addSpacing(16);
-    auto connection = new QPushButton(tr("Connect"), status);
-    connection->setObjectName("connectionButton");
-    connection->setMinimumWidth(104);
-    summary->addWidget(connection);
+
     statusLayout->addLayout(summary);
     auto modes = new QHBoxLayout;
-    modes->addWidget(c.systemProxy);
-    modes->addSpacing(16);
-    modes->addWidget(c.tun);
+    c.systemProxy->hide();
+    c.tun->hide();
+    auto systemProxy = new QPushButton(tr("Connect with system proxy"), status);
+    auto tun = new QPushButton(tr("Connect with TUN"), status);
+    systemProxy->setObjectName("systemProxyConnectionButton");
+    tun->setObjectName("tunConnectionButton");
+    systemProxy->setProperty("connectionMode", true);
+    tun->setProperty("connectionMode", true);
+    systemProxy->setToolTip(tr("Start the selected node and enable the system proxy."));
+    tun->setToolTip(tr("Start the selected node with TUN. Administrator permission may be required."));
+    modes->addWidget(systemProxy);
+    modes->addWidget(tun);
     modes->addStretch();
     auto routing = new QPushButton(tr("Routing settings"), status);
     routing->setObjectName("quietButton");
@@ -167,5 +173,5 @@ QPushButton *DesktopShell::Build(QMainWindow *window, const DesktopShellControls
     outer->addWidget(body, 1);
     window->setCentralWidget(root);
     window->resize(1060, 720);
-    return connection;
+    return {systemProxy, tun};
 }

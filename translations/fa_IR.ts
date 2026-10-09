@@ -12,10 +12,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Connect</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Routing settings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -57,6 +53,22 @@
     </message>
     <message>
         <source>No nodes yet. Add a node or import a subscription.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connect with system proxy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connect with TUN</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start the selected node and enable the system proxy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start the selected node with TUN. Administrator permission may be required.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1572,15 +1584,39 @@ End: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Disconnect</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>No nodes yet. Add a node or import a subscription.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>No matching nodes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disconnect system proxy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connect with system proxy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disconnect TUN</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connect with TUN</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connecting…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disconnecting…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to start TUN process.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

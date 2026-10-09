@@ -67,18 +67,51 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Setup misc UI
     themeManager->ApplyTheme(NekoGui::dataStore->theme);
     ui->setupUi(this);
-    connection_button = DesktopShell::Build(this, {
+    auto connectionButtons = DesktopShell::Build(this, {
         ui->tabWidget, ui->down_tab, ui->label_running, ui->label_inbound, ui->label_speed,
         ui->search, ui->checkBox_SystemProxy, ui->checkBox_VPN, ui->toolButton_url_test,
         ui->toolButton_program, ui->toolButton_preferences, ui->toolButton_server,
         ui->toolButton_document, ui->toolButton_update, ui->menu_manage_groups,
         ui->menu_routing_settings, ui->menu_basic_settings, ui->menu_add_from_input,
         ui->menu_add_from_clipboard});
-    connect(connection_button, &QPushButton::clicked, this, [=] {
-        if (running != nullptr) neko_stop();
-        else if (get_now_selected_list().isEmpty())
-            MessageBoxWarning(tr("Connect"), tr("Select a node to connect."));
-        else neko_start();
+    system_proxy_button = connectionButtons.systemProxy;
+    tun_button = connectionButtons.tun;
+    connect(system_proxy_button, &QPushButton::clicked, this, [=] { request_connection_mode(1); });
+    connect(tun_button, &QPushButton::clicked, this, [=] { request_connection_mode(2); });
+    connect(this, &MainWindow::connection_start_finished, this, [=](bool success) {
+        if (!connection_busy) {
+            if (!success && managed_connection) {
+                clear_connection_modes();
+                managed_connection = false;
+            }
+            return;
+        }
+        if (success && requested_connection_mode == 2 && !NekoGui::dataStore->spmode_vpn) {
+            requested_connection_mode = 0;
+            neko_stop();
+            return;
+        }
+        if (success && requested_connection_mode == 1) neko_set_spmode_system_proxy(true);
+        if (!success) clear_connection_modes();
+        connection_busy = false;
+        managed_connection = success;
+        refresh_status();
+    });
+    connect(this, &MainWindow::connection_stop_finished, this, [=](bool success, bool restarting) {
+        if (restarting) return; // Existing node/config restarts retain the selected mode.
+        if (!connection_busy && !managed_connection) return;
+        if (!success) {
+            connection_busy = false;
+            refresh_status();
+            return;
+        }
+        clear_connection_modes();
+        managed_connection = false;
+        if (connection_busy && requested_connection_mode != 0) start_connection_mode();
+        else {
+            connection_busy = false;
+            refresh_status();
+        }
     });
     //
     connect(ui->menu_start, &QAction::triggered, this, [=]() { neko_start(); });
@@ -593,13 +626,60 @@ void MainWindow::dialog_message_impl(const QString &sender, const QString &info)
         }
     } else if (sender == "ExternalProcess") {
         if (info == "Crashed") {
+            requested_connection_mode = 0;
             neko_stop();
+        } else if (info == "CoreFailedToStart") {
+            emit connection_start_finished(false);
         } else if (info == "CoreCrashed") {
+            requested_connection_mode = 0;
             neko_stop(true);
         } else if (info.startsWith("CoreStarted")) {
             neko_start(info.split(",")[1].toInt());
         }
     }
+}
+
+// Home connection actions serialize stop, mode setup and asynchronous core start.
+void MainWindow::clear_connection_modes() {
+    neko_set_spmode_system_proxy(false);
+    neko_set_spmode_vpn(false, true, false);
+}
+
+void MainWindow::request_connection_mode(int mode) {
+    if (connection_busy || select_mode || NekoGui::dataStore->prepare_exit) return;
+    auto ds = NekoGui::dataStore;
+    bool disconnect = running && ((mode == 1 && ds->spmode_system_proxy) || (mode == 2 && ds->spmode_vpn));
+    auto selected = get_now_selected_list();
+    if (!disconnect && selected.isEmpty() && !running) {
+        MessageBoxWarning(tr("Connect"), tr("Select a node to connect."));
+        return;
+    }
+    requested_profile_id = !selected.isEmpty() ? selected.first()->id : (running ? running->id : -1);
+    requested_connection_mode = disconnect ? 0 : mode;
+    connection_busy = true;
+    refresh_status();
+    if (running) neko_stop();
+    else if (disconnect) emit connection_stop_finished(true, false);
+    else start_connection_mode();
+}
+
+void MainWindow::start_connection_mode() {
+    clear_connection_modes();
+    if (NekoGui::dataStore->spmode_vpn) { // Failed to stop the old external TUN process.
+        connection_busy = false;
+        refresh_status();
+        return;
+    }
+    if (requested_connection_mode == 2) {
+        neko_set_spmode_vpn(true, true, false);
+        if (!NekoGui::dataStore->spmode_vpn || NekoGui::dataStore->prepare_exit) {
+            connection_busy = false;
+            refresh_status();
+            return;
+        }
+    }
+    managed_connection = true;
+    neko_start(requested_profile_id);
 }
 
 // top bar & tray menu
@@ -748,7 +828,7 @@ void MainWindow::neko_set_spmode_system_proxy(bool enable, bool save) {
     refresh_status();
 }
 
-void MainWindow::neko_set_spmode_vpn(bool enable, bool save) {
+void MainWindow::neko_set_spmode_vpn(bool enable, bool save, bool restart) {
     if (enable != NekoGui::dataStore->spmode_vpn) {
         if (enable) {
             if (NekoGui::dataStore->vpn_internal_tun) {
@@ -810,7 +890,7 @@ void MainWindow::neko_set_spmode_vpn(bool enable, bool save) {
     NekoGui::dataStore->spmode_vpn = enable;
     refresh_status();
 
-    if (NekoGui::dataStore->vpn_internal_tun && NekoGui::dataStore->started_id >= 0) neko_start(NekoGui::dataStore->started_id);
+    if (restart && NekoGui::dataStore->vpn_internal_tun && NekoGui::dataStore->started_id >= 0) neko_start(NekoGui::dataStore->started_id);
 }
 
 void MainWindow::refresh_status(const QString &traffic_update) {
@@ -835,11 +915,24 @@ void MainWindow::refresh_status(const QString &traffic_update) {
 
     refresh_speed_label();
 
-    connection_button->setText(running != nullptr ? tr("Disconnect") : tr("Connect"));
-    connection_button->setProperty("connected", running != nullptr);
-    connection_button->style()->unpolish(connection_button);
-    connection_button->style()->polish(connection_button);
-    connection_button->setAccessibleName(connection_button->text());
+    for (auto action : {ui->menu_start, ui->menu_stop, ui->menu_spmode_system_proxy,
+                        ui->menu_spmode_vpn, ui->menu_spmode_disabled}) action->setEnabled(!connection_busy);
+    const bool systemConnected = running && NekoGui::dataStore->spmode_system_proxy;
+    const bool tunConnected = running && NekoGui::dataStore->spmode_vpn;
+    system_proxy_button->setText(systemConnected ? tr("Disconnect system proxy") : tr("Connect with system proxy"));
+    tun_button->setText(tunConnected ? tr("Disconnect TUN") : tr("Connect with TUN"));
+    for (auto button : {system_proxy_button, tun_button}) {
+        button->setEnabled(!connection_busy);
+        if (connection_busy && ((button == system_proxy_button && requested_connection_mode == 1) ||
+                                (button == tun_button && requested_connection_mode == 2)))
+            button->setText(tr("Connecting…"));
+        else if (connection_busy && requested_connection_mode == 0)
+            button->setText(tr("Disconnecting…"));
+        button->setProperty("connected", button == system_proxy_button ? systemConnected : tunConnected);
+        button->style()->unpolish(button);
+        button->style()->polish(button);
+        button->setAccessibleName(button->text());
+    }
 
     // From UI
     QString group_name;
@@ -1843,16 +1936,23 @@ bool MainWindow::StartVPNProcess() {
                                          {"--disable-color", "run", "-c", configPath}, "",
                                          NekoGui::dataStore->vpn_hide_console ? WinCommander::SW_HIDE : WinCommander::SW_SHOWMINIMIZED); // blocking
         vpn_pid = 0;
-        runOnUiThread([=] { neko_set_spmode_vpn(false); });
+        runOnUiThread([=] { neko_set_spmode_vpn(false, true, false); if (managed_connection && !connection_busy) { requested_connection_mode = 0; neko_stop(); } });
     });
 #else
     //
     auto vpn_process = new QProcess;
     QProcess::connect(vpn_process, &QProcess::stateChanged, this, [=](QProcess::ProcessState state) {
         if (state == QProcess::NotRunning) {
+            // Ignore a late exit notification from a TUN process already replaced.
+            if (vpn_pid != 0 && vpn_pid != vpn_process->property("tunPid").toLongLong()) {
+                vpn_process->deleteLater();
+                return;
+            }
+            const bool wasEnabled = NekoGui::dataStore->spmode_vpn;
             vpn_pid = 0;
             vpn_process->deleteLater();
-            GetMainWindow()->neko_set_spmode_vpn(false);
+            neko_set_spmode_vpn(false, true, false);
+            if (wasEnabled && managed_connection) { requested_connection_mode = 0; neko_stop(); }
         }
     });
     //
@@ -1863,8 +1963,13 @@ bool MainWindow::StartVPNProcess() {
 #else
     vpn_process->start("pkexec", {"bash", scriptPath});
 #endif
-    vpn_process->waitForStarted();
-    vpn_pid = vpn_process->processId(); // actually it's pkexec or bash PID
+    if (!vpn_process->waitForStarted()) {
+        vpn_process->deleteLater();
+        MessageBoxWarning(software_name, tr("Failed to start TUN process."));
+        return false;
+    }
+    vpn_pid = vpn_process->processId();
+    vpn_process->setProperty("tunPid", vpn_pid); // actually it's pkexec or bash PID
 #endif
     return true;
 }

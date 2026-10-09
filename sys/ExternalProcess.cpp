@@ -106,6 +106,8 @@ namespace NekoGui_sys {
         connect(this, &QProcess::errorOccurred, this, [&](QProcess::ProcessError error) {
             if (error == QProcess::ProcessError::FailedToStart) {
                 failed_to_start = true;
+                start_profile_when_core_is_up = -1;
+                MW_dialog_message("ExternalProcess", "CoreFailedToStart");
                 MW_show_log("start core error occurred: " + errorString() + "\n");
             }
         });

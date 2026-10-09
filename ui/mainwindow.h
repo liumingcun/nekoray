@@ -56,7 +56,7 @@ public:
 
     void neko_set_spmode_system_proxy(bool enable, bool save = true);
 
-    void neko_set_spmode_vpn(bool enable, bool save = true);
+    void neko_set_spmode_vpn(bool enable, bool save = true, bool restart = true);
 
     void show_log_impl(const QString &log);
 
@@ -71,6 +71,8 @@ public:
 signals:
 
     void profile_selected(int id);
+    void connection_start_finished(bool success);
+    void connection_stop_finished(bool success, bool restarting);
 
 public slots:
 
@@ -138,7 +140,16 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    QPushButton *connection_button = nullptr;
+    QPushButton *system_proxy_button = nullptr;
+    QPushButton *tun_button = nullptr;
+    // 0 = disconnect, 1 = system proxy, 2 = TUN. Only one operation at a time.
+    int requested_connection_mode = 0;
+    int requested_profile_id = -1;
+    bool connection_busy = false;
+    bool managed_connection = false;
+    void request_connection_mode(int mode);
+    void start_connection_mode();
+    void clear_connection_modes();
     QSystemTrayIcon *tray;
     QShortcut *shortcut_ctrl_f = new QShortcut(QKeySequence("Ctrl+F"), this);
     QShortcut *shortcut_esc = new QShortcut(QKeySequence("Esc"), this);

@@ -12,10 +12,6 @@
         <translation>代理配置管理</translation>
     </message>
     <message>
-        <source>Connect</source>
-        <translation>连接</translation>
-    </message>
-    <message>
         <source>Routing settings</source>
         <translation>路由设置</translation>
     </message>
@@ -58,6 +54,22 @@
     <message>
         <source>No nodes yet. Add a node or import a subscription.</source>
         <translation>还没有节点，请添加节点或导入订阅。</translation>
+    </message>
+    <message>
+        <source>Connect with system proxy</source>
+        <translation>系统代理连接</translation>
+    </message>
+    <message>
+        <source>Connect with TUN</source>
+        <translation>TUN 连接</translation>
+    </message>
+    <message>
+        <source>Start the selected node and enable the system proxy.</source>
+        <translation>连接所选节点并启用系统代理。</translation>
+    </message>
+    <message>
+        <source>Start the selected node with TUN. Administrator permission may be required.</source>
+        <translation>通过 TUN 连接所选节点，可能需要管理员权限。</translation>
     </message>
 </context>
 <context>
@@ -1574,10 +1586,6 @@ Split by line.</source>
         <translation>连接</translation>
     </message>
     <message>
-        <source>Disconnect</source>
-        <translation>断开连接</translation>
-    </message>
-    <message>
         <source>Select a node to connect.</source>
         <translation>请先选择要连接的节点。</translation>
     </message>
@@ -1588,6 +1596,34 @@ Split by line.</source>
     <message>
         <source>No matching nodes.</source>
         <translation>没有匹配的节点。</translation>
+    </message>
+    <message>
+        <source>Disconnect system proxy</source>
+        <translation>断开系统代理</translation>
+    </message>
+    <message>
+        <source>Connect with system proxy</source>
+        <translation>系统代理连接</translation>
+    </message>
+    <message>
+        <source>Disconnect TUN</source>
+        <translation>断开 TUN</translation>
+    </message>
+    <message>
+        <source>Connect with TUN</source>
+        <translation>TUN 连接</translation>
+    </message>
+    <message>
+        <source>Connecting…</source>
+        <translation>正在连接…</translation>
+    </message>
+    <message>
+        <source>Disconnecting…</source>
+        <translation>正在断开…</translation>
+    </message>
+    <message>
+        <source>Failed to start TUN process.</source>
+        <translation>TUN 进程启动失败。</translation>
     </message>
 </context>
 <context>

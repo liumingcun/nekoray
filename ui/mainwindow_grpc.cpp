@@ -283,11 +283,12 @@ void MainWindow::stop_core_daemon() {
 }
 
 void MainWindow::neko_start(int _id) {
-    if (NekoGui::dataStore->prepare_exit) return;
+    if (connection_busy && _id < 0) return; // Home start uses its captured profile id.
+    if (NekoGui::dataStore->prepare_exit) { emit connection_start_finished(false); return; }
 
     auto ents = get_now_selected_list();
     auto ent = (_id < 0 && !ents.isEmpty()) ? ents.first() : NekoGui::profileManager->GetProfile(_id);
-    if (ent == nullptr) return;
+    if (ent == nullptr) { emit connection_start_finished(false); return; }
 
     if (select_mode) {
         emit profile_selected(ent->id);
@@ -297,11 +298,12 @@ void MainWindow::neko_start(int _id) {
     }
 
     auto group = NekoGui::profileManager->GetGroup(ent->gid);
-    if (group == nullptr || group->archive) return;
+    if (group == nullptr || group->archive) { emit connection_start_finished(false); return; }
 
     auto result = BuildConfig(ent, false, false);
     if (!result->error.isEmpty()) {
         MessageBoxWarning("BuildConfig return error", result->error);
+        emit connection_start_finished(false);
         return;
     }
 
@@ -350,11 +352,13 @@ void MainWindow::neko_start(int _id) {
 
     if (!mu_starting.tryLock()) {
         MessageBoxWarning(software_name, "Another profile is starting...");
+        emit connection_start_finished(false);
         return;
     }
     if (!mu_stopping.tryLock()) {
         MessageBoxWarning(software_name, "Another profile is stopping...");
         mu_starting.unlock();
+        emit connection_start_finished(false);
         return;
     }
     mu_stopping.unlock();
@@ -386,7 +390,8 @@ void MainWindow::neko_start(int _id) {
         }
         // do start
         MW_show_log(">>>>>>>> " + tr("Starting profile %1").arg(ent->bean->DisplayTypeAndName()));
-        if (!neko_start_stage2()) {
+        const bool success = neko_start_stage2();
+        if (!success) {
             MW_show_log("<<<<<<<< " + tr("Failed to start profile %1").arg(ent->bean->DisplayTypeAndName()));
         }
         mu_starting.unlock();
@@ -395,6 +400,7 @@ void MainWindow::neko_start(int _id) {
             restartMsgboxTimer->cancel();
             restartMsgboxTimer->deleteLater();
             restartMsgbox->deleteLater();
+            emit connection_start_finished(success);
 #ifdef Q_OS_LINUX
             // Check systemd-resolved
             if (NekoGui::dataStore->spmode_vpn && NekoGui::dataStore->routing->direct_dns.startsWith("local") && ReadFileText("/etc/resolv.conf").contains("systemd-resolved")) {
@@ -409,6 +415,7 @@ void MainWindow::neko_stop(bool crash, bool sem) {
     auto id = NekoGui::dataStore->started_id;
     if (id < 0) {
         if (sem) sem_stopped.release();
+        emit connection_stop_finished(true, sem);
         return;
     }
 
@@ -461,6 +468,7 @@ void MainWindow::neko_stop(bool crash, bool sem) {
 
     if (!mu_stopping.tryLock()) {
         if (sem) sem_stopped.release();
+        emit connection_stop_finished(false, sem);
         return;
     }
 
@@ -473,7 +481,8 @@ void MainWindow::neko_stop(bool crash, bool sem) {
     runOnNewThread([=] {
         // do stop
         MW_show_log(">>>>>>>> " + tr("Stopping profile %1").arg(running->bean->DisplayTypeAndName()));
-        if (!neko_stop_stage2()) {
+        const bool success = neko_stop_stage2();
+        if (!success) {
             MW_show_log("<<<<<<<< " + tr("Failed to stop, please restart the program."));
         }
         mu_stopping.unlock();
@@ -483,6 +492,7 @@ void MainWindow::neko_stop(bool crash, bool sem) {
             restartMsgboxTimer->cancel();
             restartMsgboxTimer->deleteLater();
             restartMsgbox->deleteLater();
+            emit connection_stop_finished(success, sem);
         });
     });
 }
