@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QPushButton>
 
 #include "main/NekoGui.hpp"
 
@@ -137,6 +138,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QPushButton *connection_button = nullptr;
     QSystemTrayIcon *tray;
     QShortcut *shortcut_ctrl_f = new QShortcut(QKeySequence("Ctrl+F"), this);
     QShortcut *shortcut_esc = new QShortcut(QKeySequence("Esc"), this);
@@ -168,6 +170,8 @@ private:
     void dialog_message_impl(const QString &sender, const QString &info);
 
     void refresh_proxy_list_impl(const int &id = -1, GroupSortAction groupSortAction = {});
+
+    void apply_node_filter();
 
     void refresh_proxy_list_impl_refresh_data(const int &id = -1);
 

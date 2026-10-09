@@ -13,10 +13,18 @@
         <file>icon/material/swap-vertical.svg</file>
         <file>icon/material/delete.svg</file>
         <file>icon/material/swap-horizontal.svg</file>
+        <file>icon/navigation/home.svg</file>
+        <file>icon/navigation/subscriptions.svg</file>
+        <file>icon/navigation/routing.svg</file>
+        <file>icon/navigation/connections.svg</file>
+        <file>icon/navigation/logs.svg</file>
+        <file>icon/navigation/settings.svg</file>
+        <file>icon/navigation/check.svg</file>
     </qresource>
     <qresource prefix="/neko">
         <file alias="nekobox.png">public/nekobox.png</file>
         <file>neko.css</file>
+        <file>theme/shadowrocket.qss</file>
         <file>vpn/vpn-run-root.sh</file>
         <file>vpn/sing-box-vpn.json</file>
         <file>dashboard-notice.html</file>

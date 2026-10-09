@@ -161,6 +161,8 @@ set(PROJECT_SOURCES
         sys/AutoRun.cpp
 
         ui/ThemeManager.cpp
+        ui/DesktopShell.cpp
+        ui/DesktopShell.hpp
         ui/Icon.cpp
 
         ui/mainwindow_grpc.cpp

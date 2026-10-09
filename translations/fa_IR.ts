@@ -2,6 +2,65 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="fa_IR" sourcelanguage="en">
 <context>
+    <name>DesktopShell</name>
+    <message>
+        <source>PROXY MANAGER</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Home</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Routing settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search nodes…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search nodes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Test latency</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>+ Add node</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Subscriptions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Routing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connections</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Logs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished">تنظیمات</translation>
+    </message>
+    <message>
+        <source>No nodes yet. Add a node or import a subscription.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DialogBasicSettings</name>
     <message>
         <source>Basic Settings</source>
@@ -219,6 +278,14 @@
     </message>
     <message>
         <source>Mixed (SOCKS+HTTP) Listen Port</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Modern Light</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Modern Dark</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1496,6 +1563,26 @@ End: %2</source>
         <source>URL Test</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Connect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a node to connect.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disconnect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No nodes yet. Add a node or import a subscription.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No matching nodes.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ProxyItem</name>
@@ -1638,6 +1725,10 @@ Direct: %2</source>
     </message>
     <message>
         <source>The last speed test did not exit completely, please wait. If it persists, please restart the program.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Speedtest finished.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

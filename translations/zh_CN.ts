@@ -2,6 +2,65 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
+    <name>DesktopShell</name>
+    <message>
+        <source>Home</source>
+        <translation>首页</translation>
+    </message>
+    <message>
+        <source>PROXY MANAGER</source>
+        <translation>代理配置管理</translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation>连接</translation>
+    </message>
+    <message>
+        <source>Routing settings</source>
+        <translation>路由设置</translation>
+    </message>
+    <message>
+        <source>Search nodes…</source>
+        <translation>搜索节点…</translation>
+    </message>
+    <message>
+        <source>Search nodes</source>
+        <translation>搜索节点</translation>
+    </message>
+    <message>
+        <source>Test latency</source>
+        <translation>测试延迟</translation>
+    </message>
+    <message>
+        <source>+ Add node</source>
+        <translation>+ 添加节点</translation>
+    </message>
+    <message>
+        <source>Subscriptions</source>
+        <translation>订阅</translation>
+    </message>
+    <message>
+        <source>Routing</source>
+        <translation>路由</translation>
+    </message>
+    <message>
+        <source>Connections</source>
+        <translation>连接记录</translation>
+    </message>
+    <message>
+        <source>Logs</source>
+        <translation>日志</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>设置</translation>
+    </message>
+    <message>
+        <source>No nodes yet. Add a node or import a subscription.</source>
+        <translation>还没有节点，请添加节点或导入订阅。</translation>
+    </message>
+</context>
+<context>
     <name>DialogBasicSettings</name>
     <message>
         <source>Basic Settings</source>
@@ -218,6 +277,14 @@
     <message>
         <source>Mixed (SOCKS+HTTP) Listen Port</source>
         <translation>Mixed (SOCKS+HTTP) 监听端口</translation>
+    </message>
+    <message>
+        <source>Modern Light</source>
+        <translation>现代浅色</translation>
+    </message>
+    <message>
+        <source>Modern Dark</source>
+        <translation>现代深色</translation>
     </message>
 </context>
 <context>
@@ -1502,6 +1569,26 @@ Split by line.</source>
         <source>URL Test</source>
         <translation>URL 测试</translation>
     </message>
+    <message>
+        <source>Connect</source>
+        <translation>连接</translation>
+    </message>
+    <message>
+        <source>Disconnect</source>
+        <translation>断开连接</translation>
+    </message>
+    <message>
+        <source>Select a node to connect.</source>
+        <translation>请先选择要连接的节点。</translation>
+    </message>
+    <message>
+        <source>No nodes yet. Add a node or import a subscription.</source>
+        <translation>还没有节点，请添加节点或导入订阅。</translation>
+    </message>
+    <message>
+        <source>No matching nodes.</source>
+        <translation>没有匹配的节点。</translation>
+    </message>
 </context>
 <context>
     <name>ProxyItem</name>
@@ -1652,6 +1739,10 @@ Release note:
     <message>
         <source>The last speed test did not exit completely, please wait. If it persists, please restart the program.</source>
         <translation>上次速度测试未完全退出，请等待。如果问题仍然存在，请重新启动程序。</translation>
+    </message>
+    <message>
+        <source>Speedtest finished.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

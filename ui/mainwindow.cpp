@@ -9,6 +9,7 @@
 #include "sys/AutoRun.hpp"
 
 #include "ui/ThemeManager.hpp"
+#include "ui/DesktopShell.hpp"
 #include "ui/Icon.hpp"
 #include "ui/edit/dialog_edit_profile.h"
 #include "ui/dialog_basic_settings.h"
@@ -47,6 +48,8 @@
 #include <QMessageBox>
 #include <QDir>
 #include <QFileInfo>
+#include <QStyle>
+#include <QSet>
 
 void UI_InitMainWindow() {
     mainwindow = new MainWindow;
@@ -64,6 +67,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Setup misc UI
     themeManager->ApplyTheme(NekoGui::dataStore->theme);
     ui->setupUi(this);
+    connection_button = DesktopShell::Build(this, {
+        ui->tabWidget, ui->down_tab, ui->label_running, ui->label_inbound, ui->label_speed,
+        ui->search, ui->checkBox_SystemProxy, ui->checkBox_VPN, ui->toolButton_url_test,
+        ui->toolButton_program, ui->toolButton_preferences, ui->toolButton_server,
+        ui->toolButton_document, ui->toolButton_update, ui->menu_manage_groups,
+        ui->menu_routing_settings, ui->menu_basic_settings, ui->menu_add_from_input,
+        ui->menu_add_from_clipboard});
+    connect(connection_button, &QPushButton::clicked, this, [=] {
+        if (running != nullptr) neko_stop();
+        else if (get_now_selected_list().isEmpty())
+            MessageBoxWarning(tr("Connect"), tr("Select a node to connect."));
+        else neko_start();
+    });
     //
     connect(ui->menu_start, &QAction::triggered, this, [=]() { neko_start(); });
     connect(ui->menu_stop, &QAction::triggered, this, [=]() { neko_stop(); });
@@ -140,6 +156,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     };
 
     // table UI
+    ui->proxyListTable->installEventFilter(this);
     ui->proxyListTable->callback_save_order = [=] {
         auto group = NekoGui::profileManager->CurrentGroup();
         group->order = ui->proxyListTable->order;
@@ -188,10 +205,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->tableWidget_conn->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->tableWidget_conn->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->tableWidget_conn->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    ui->proxyListTable->verticalHeader()->setDefaultSectionSize(24);
+    ui->proxyListTable->setShowGrid(false);
+    ui->proxyListTable->setAlternatingRowColors(false);
+    ui->proxyListTable->verticalHeader()->setDefaultSectionSize(44);
+    ui->proxyListTable->verticalHeader()->setMinimumSectionSize(44);
+    ui->proxyListTable->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    ui->proxyListTable->horizontalHeader()->setSectionsMovable(false);
+    ui->proxyListTable->horizontalHeader()->moveSection(2, 0);
+    ui->proxyListTable->setCornerButtonEnabled(false);
 
     // search box
-    ui->search->setVisible(false);
+    ui->search->setVisible(true);
     connect(shortcut_ctrl_f, &QShortcut::activated, this, [=] {
         ui->search->setVisible(true);
         ui->search->setFocus();
@@ -200,7 +224,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         if (ui->search->isVisible()) {
             ui->search->setText("");
             ui->search->textChanged("");
-            ui->search->setVisible(false);
+            ui->proxyListTable->setFocus();
         }
         if (select_mode) {
             emit profile_selected(-1);
@@ -208,20 +232,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             refresh_status();
         }
     });
-    connect(ui->search, &QLineEdit::textChanged, this, [=](const QString &text) {
-        if (text.isEmpty()) {
-            for (int i = 0; i < ui->proxyListTable->rowCount(); i++) {
-                ui->proxyListTable->setRowHidden(i, false);
-            }
-        } else {
-            QList<QTableWidgetItem *> findItem = ui->proxyListTable->findItems(text, Qt::MatchContains);
-            for (int i = 0; i < ui->proxyListTable->rowCount(); i++) {
-                ui->proxyListTable->setRowHidden(i, true);
-            }
-            for (auto item: findItem) {
-                if (item != nullptr) ui->proxyListTable->setRowHidden(item->row(), false);
-            }
-        }
+    connect(ui->search, &QLineEdit::textChanged, this, [=](const QString &) {
+        apply_node_filter();
     });
 
     // refresh
@@ -804,7 +816,7 @@ void MainWindow::neko_set_spmode_vpn(bool enable, bool save) {
 void MainWindow::refresh_status(const QString &traffic_update) {
     auto refresh_speed_label = [=] {
         if (traffic_update_cache == "") {
-            ui->label_speed->setText(QObject::tr("Proxy: %1\nDirect: %2").arg("", ""));
+            ui->label_speed->setText(QObject::tr("Proxy: %1\nDirect: %2").arg(QStringLiteral("—"), QStringLiteral("—")));
         } else {
             ui->label_speed->setText(traffic_update_cache);
         }
@@ -822,6 +834,12 @@ void MainWindow::refresh_status(const QString &traffic_update) {
     }
 
     refresh_speed_label();
+
+    connection_button->setText(running != nullptr ? tr("Disconnect") : tr("Connect"));
+    connection_button->setProperty("connected", running != nullptr);
+    connection_button->style()->unpolish(connection_button);
+    connection_button->style()->polish(connection_button);
+    connection_button->setAccessibleName(connection_button->text());
 
     // From UI
     QString group_name;
@@ -1025,6 +1043,8 @@ void MainWindow::refresh_proxy_list_impl(const int &id, GroupSortAction groupSor
 }
 
 void MainWindow::refresh_proxy_list_impl_refresh_data(const int &id) {
+    QSet<int> selectedIds;
+    for (auto item : ui->proxyListTable->selectedItems()) selectedIds.insert(item->data(114514).toInt());
     // 绘制或更新item(s)
     for (int row = 0; row < ui->proxyListTable->rowCount(); row++) {
         auto profileId = ui->proxyListTable->row2Id[row];
@@ -1035,6 +1055,7 @@ void MainWindow::refresh_proxy_list_impl_refresh_data(const int &id) {
         auto isRunning = profileId == NekoGui::dataStore->started_id;
         auto f0 = std::make_unique<QTableWidgetItem>();
         f0->setData(114514, profileId);
+        if (isRunning) f0->setBackground(palette().highlight());
 
         // Check state
         auto check = f0->clone();
@@ -1056,6 +1077,10 @@ void MainWindow::refresh_proxy_list_impl_refresh_data(const int &id) {
         // C2: Name
         f = f0->clone();
         f->setText(profile->bean->name);
+        f->setToolTip(profile->bean->DisplayAddress());
+        auto nameFont = f->font();
+        nameFont.setBold(true);
+        f->setFont(nameFont);
         if (isRunning) f->setForeground(palette().link());
         ui->proxyListTable->setItem(row, 2, f);
 
@@ -1063,6 +1088,11 @@ void MainWindow::refresh_proxy_list_impl_refresh_data(const int &id) {
         f = f0->clone();
         if (profile->full_test_report.isEmpty()) {
             auto color = profile->DisplayLatencyColor();
+            if (palette().color(QPalette::Base).lightness() < 128) {
+                if (color == QColor(Qt::darkGreen)) color = QColor("#64D6A0");
+                else if (color == QColor(Qt::darkYellow)) color = QColor("#E4BA63");
+                else if (color == QColor(Qt::red)) color = QColor("#FF8282");
+            }
             if (color.isValid()) f->setForeground(color);
             f->setText(profile->DisplayLatency());
         } else {
@@ -1075,6 +1105,31 @@ void MainWindow::refresh_proxy_list_impl_refresh_data(const int &id) {
         f->setText(profile->traffic_data->DisplayTraffic());
         ui->proxyListTable->setItem(row, 4, f);
     }
+    for (int row = 0; row < ui->proxyListTable->rowCount(); ++row) {
+        if (selectedIds.contains(ui->proxyListTable->row2Id[row]))
+            ui->proxyListTable->selectionModel()->select(ui->proxyListTable->model()->index(row, 0),
+                                                        QItemSelectionModel::Select | QItemSelectionModel::Rows);
+    }
+    apply_node_filter();
+}
+
+void MainWindow::apply_node_filter() {
+    const auto text = ui->search->text();
+    int visible = 0;
+    for (int row = 0; row < ui->proxyListTable->rowCount(); ++row) {
+        bool matches = text.isEmpty();
+        for (int col = 0; col < ui->proxyListTable->columnCount() && !matches; ++col) {
+            const auto item = ui->proxyListTable->item(row, col);
+            matches = item && item->text().contains(text, Qt::CaseInsensitive);
+        }
+        ui->proxyListTable->setRowHidden(row, !matches);
+        if (matches) ++visible;
+    }
+    auto empty = findChild<QLabel *>("nodeEmptyState");
+    empty->setText(ui->proxyListTable->rowCount() == 0
+                       ? tr("No nodes yet. Add a node or import a subscription.")
+                       : tr("No matching nodes."));
+    empty->setVisible(visible == 0);
 }
 
 // table菜单相关
@@ -1617,6 +1672,9 @@ void MainWindow::on_masterLogBrowser_customContextMenuRequested(const QPoint &po
 // eventFilter
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == ui->proxyListTable && event->type() == QEvent::PaletteChange) {
+        QTimer::singleShot(0, this, [=] { refresh_proxy_list_impl_refresh_data(); });
+    }
     if (event->type() == QEvent::MouseButtonPress) {
         auto mouseEvent = dynamic_cast<QMouseEvent *>(event);
         if (obj == ui->label_running && mouseEvent->button() == Qt::LeftButton && running != nullptr) {
